@@ -41,6 +41,7 @@ fi
 
 # ── Install binary ─────────────────────────────────────────────────────────────
 echo "Installing to $INSTALL_PATH (requires admin password)..."
+sudo mkdir -p "$(dirname "$INSTALL_PATH")"
 sudo cp "$BINARY_SOURCE" "$INSTALL_PATH"
 sudo chmod 755 "$INSTALL_PATH"
 sudo chown root:wheel "$INSTALL_PATH"
