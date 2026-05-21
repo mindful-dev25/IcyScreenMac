@@ -13,28 +13,35 @@ echo "  IcyScreen Installer"
 echo "========================================"
 echo ""
 
-# ── Prerequisites ──────────────────────────────────────────────────────────────
-if ! command -v swift &>/dev/null; then
-    echo "ERROR: Swift not found."
-    echo "Install Xcode Command Line Tools first:  xcode-select --install"
-    exit 1
-fi
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PREBUILT="$SCRIPT_DIR/IcyScreenMac"
 
-# ── Build ──────────────────────────────────────────────────────────────────────
-echo "Building..."
-swift build -c release 2>&1
-
-BUILD_OUTPUT=".build/release/$BINARY_NAME"
-if [ ! -f "$BUILD_OUTPUT" ]; then
-    echo "ERROR: Build failed."
-    exit 1
+# ── Build or use pre-built binary ─────────────────────────────────────────────
+if [ -f "$PREBUILT" ]; then
+    echo "Using pre-built binary."
+    echo ""
+    BINARY_SOURCE="$PREBUILT"
+else
+    if ! command -v swift &>/dev/null; then
+        echo "ERROR: No pre-built binary found and Swift is not installed."
+        echo "Install Xcode Command Line Tools:  xcode-select --install"
+        exit 1
+    fi
+    echo "Building from source..."
+    swift build -c release 2>&1
+    BUILD_OUTPUT=".build/release/$BINARY_NAME"
+    if [ ! -f "$BUILD_OUTPUT" ]; then
+        echo "ERROR: Build failed."
+        exit 1
+    fi
+    echo "Build succeeded."
+    echo ""
+    BINARY_SOURCE="$BUILD_OUTPUT"
 fi
-echo "Build succeeded."
-echo ""
 
 # ── Install binary ─────────────────────────────────────────────────────────────
 echo "Installing to $INSTALL_PATH (requires admin password)..."
-sudo cp "$BUILD_OUTPUT" "$INSTALL_PATH"
+sudo cp "$BINARY_SOURCE" "$INSTALL_PATH"
 sudo chmod 755 "$INSTALL_PATH"
 sudo chown root:wheel "$INSTALL_PATH"
 codesign -s - --force "$INSTALL_PATH" 2>/dev/null && echo "Binary signed." || true
