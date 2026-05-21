@@ -9,10 +9,10 @@ struct Config: Codable {
 
     init() {
         intervalMinutes = 2
-        ftpHost = ""
-        ftpUsername = ""
+        ftpHost = "192.168.3.21"
+        ftpUsername = "lyg0711"
         ftpPassword = ""
-        ftpRemotePath = "/screenshots"
+        ftpRemotePath = "/1/KKK/mac"
     }
 
     static var configURL: URL {
