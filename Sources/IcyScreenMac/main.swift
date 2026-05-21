@@ -18,7 +18,7 @@ guard !config.ftpHost.isEmpty else {
 
 log("Interval: \(config.intervalMinutes) min | FTP: \(config.ftpHost)\(config.ftpRemotePath)")
 
-let capture  = ScreenCapture()
+let capture  = ScreenCapture(filenameFormat: config.filenameFormat)
 let uploader = FTPUploader(config: config)
 
 // Serial queue — captures never overlap even if one runs long

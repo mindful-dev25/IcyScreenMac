@@ -3,6 +3,8 @@ import ScreenCaptureKit
 import AppKit
 
 struct ScreenCapture {
+    let filenameFormat: String
+
     func capture() -> URL? {
         let semaphore = DispatchSemaphore(value: 0)
         var capturedURL: URL?
@@ -46,10 +48,9 @@ struct ScreenCapture {
             return nil
         }
 
-        let hostname = ProcessInfo.processInfo.hostName
-            .components(separatedBy: ".").first ?? "mac"
-        let timestamp = Int(Date().timeIntervalSince1970)
-        let filename = "\(hostname)_\(timestamp).jpg"
+        let formatter = DateFormatter()
+        formatter.dateFormat = filenameFormat
+        let filename = "\(formatter.string(from: Date())).jpg"
         let outputURL = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent(filename)
 

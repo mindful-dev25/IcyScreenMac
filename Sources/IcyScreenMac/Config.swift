@@ -6,6 +6,7 @@ struct Config: Codable {
     var ftpUsername: String
     var ftpPassword: String
     var ftpRemotePath: String
+    var filenameFormat: String
 
     init() {
         intervalMinutes = 2
@@ -13,6 +14,7 @@ struct Config: Codable {
         ftpUsername = "lyg0711"
         ftpPassword = ""
         ftpRemotePath = ""
+        filenameFormat = "yy-MM-dd_HH_mm_ss"
     }
 
     static var configURL: URL {

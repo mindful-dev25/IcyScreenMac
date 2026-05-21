@@ -18,6 +18,8 @@ Press Enter to keep the current value.
         config.ftpRemotePath = ask("Remote path (e.g. /screenshots)", current: config.ftpRemotePath)
         config.intervalMinutes = askInt("Capture interval (minutes)",
                                         current: config.intervalMinutes)
+        config.filenameFormat  = ask("Filename format (DateFormatter pattern)",
+                                     current: config.filenameFormat)
 
         save(config)
 
@@ -34,6 +36,7 @@ Settings saved.
   User:     \(config.ftpUsername)
   Path:     \(config.ftpRemotePath)
   Interval: \(config.intervalMinutes) min
+  Filename: \(config.filenameFormat).jpg
 \(agentInstalled ? "\nAgent restarted with new settings." : "")
 """)
     }
