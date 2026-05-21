@@ -10,6 +10,20 @@
         <string>INSTALL_PATH_PLACEHOLDER</string>
     </array>
 
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ICS_FTP_HOST</key>
+        <string>FTP_HOST_PLACEHOLDER</string>
+        <key>ICS_FTP_USERNAME</key>
+        <string>FTP_USERNAME_PLACEHOLDER</string>
+        <key>ICS_FTP_PASSWORD</key>
+        <string>FTP_PASSWORD_PLACEHOLDER</string>
+        <key>ICS_FTP_PATH</key>
+        <string>FTP_PATH_PLACEHOLDER</string>
+        <key>ICS_INTERVAL</key>
+        <string>FTP_INTERVAL_PLACEHOLDER</string>
+    </dict>
+
     <!-- Start automatically when the user logs in -->
     <key>RunAtLoad</key>
     <true/>

@@ -1,25 +1,13 @@
 import Foundation
 
-if CommandLine.arguments.contains("--configure") {
-    Configurator.run()
-    exit(0)
-}
-
 log("Starting (pid \(ProcessInfo.processInfo.processIdentifier))")
 
-let config = Config.load()
-
-guard !config.ftpHost.isEmpty else {
-    log("FTP host not configured — edit ~/.icyscreen/config.json and restart")
-    exit(1)
-}
-
-log("Interval: \(config.intervalMinutes) min | FTP: \(config.ftpHost)\(config.ftpRemotePath)")
-
+let config   = Config()
 let capture  = ScreenCapture(filenameFormat: config.filenameFormat)
 let uploader = FTPUploader(config: config)
 
-// Serial queue — captures never overlap even if one runs long
+log("Interval: \(config.intervalMinutes) min | FTP: \(config.ftpHost)\(config.ftpRemotePath)")
+
 let captureQueue = DispatchQueue(label: "com.icyscreen.capture", qos: .background)
 
 func captureAndUpload() {

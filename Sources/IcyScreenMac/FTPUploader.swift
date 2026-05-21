@@ -12,7 +12,7 @@ struct FTPUploader {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
         process.arguments = [
-            "--verbose",            // full connection log for debugging
+            "--verbose",
             "--ftp-pasv",           // passive mode — required behind NAT/router
             "--ftp-create-dirs",
             "--user", "\(config.ftpUsername):\(config.ftpPassword)",

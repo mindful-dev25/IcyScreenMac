@@ -1,6 +1,5 @@
 #!/bin/bash
 # IcyScreen installer — run this once on the child's Mac.
-set -e
 
 BINARY_NAME="IcyScreenMac"
 APP_BUNDLE="/Applications/IcyScreen.app"
@@ -19,6 +18,23 @@ TCC_DB="$REAL_HOME/Library/Application Support/com.apple.TCC/TCC.db"
 echo "========================================"
 echo "  IcyScreen Installer"
 echo "========================================"
+echo ""
+
+read -p "FTP Host        [192.168.3.21]: " FTP_HOST
+FTP_HOST="${FTP_HOST:-192.168.3.21}"
+
+read -p "FTP Username    [lyg0711]: " FTP_USER
+FTP_USER="${FTP_USER:-lyg0711}"
+
+read -s -p "FTP Password    (leave blank if none): " FTP_PASS
+echo ""
+
+read -p "FTP Remote Path [/1/KJR/mac]: " FTP_PATH
+FTP_PATH="${FTP_PATH:-/1/KJR/mac}"
+
+read -p "Capture interval in minutes [2]: " FTP_INTERVAL
+FTP_INTERVAL="${FTP_INTERVAL:-2}"
+
 echo ""
 
 # ── Build or use pre-built binary ─────────────────────────────────────────────
@@ -51,7 +67,7 @@ sleep 1
 # ── Install as .app bundle ─────────────────────────────────────────────────────
 echo "Installing IcyScreen.app to /Applications (requires admin password)..."
 
-sudo chflags -R noschg "$APP_BUNDLE" 2>/dev/null || true
+sudo chflags -R nouchg "$APP_BUNDLE" 2>/dev/null || true
 sudo mkdir -p "$APP_BUNDLE/Contents/MacOS"
 sudo mkdir -p "$APP_BUNDLE/Contents/Resources"
 sudo cp "$BINARY_SOURCE"         "$BINARY_IN_BUNDLE"
@@ -66,12 +82,9 @@ sudo xattr -r -d com.apple.quarantine "$APP_BUNDLE" 2>/dev/null || true
 # on every install which silently invalidates Screen Recording permission in TCC.
 
 # Lock the bundle — prevents deletion
-sudo chflags -R schg "$APP_BUNDLE"
+sudo chflags -R uchg "$APP_BUNDLE"
 echo "App bundle installed."
 echo ""
-
-# ── Configure FTP settings (always run as the real user, not root) ─────────────
-sudo -u "$REAL_USER" "$BINARY_IN_BUNDLE" --configure
 
 # ── Screen Recording permission via TCC database ───────────────────────────────
 echo "Granting Screen Recording permission..."
@@ -96,10 +109,63 @@ if [ -f "$TCC_DB" ]; then
 fi
 
 # ── LaunchAgent ────────────────────────────────────────────────────────────────
-mkdir -p "$REAL_HOME/Library/LaunchAgents"
-sed "s|INSTALL_PATH_PLACEHOLDER|$BINARY_IN_BUNDLE|g" \
-    "$SCRIPT_DIR/com.icyscreen.agent.plist" > "$AGENT_PLIST"
-chown "$REAL_USER" "$AGENT_PLIST"
+# Plist template is embedded here to avoid file-permission issues on Tahoe.
+TMP_PLIST=$(mktemp /tmp/com.icyscreen.agent.XXXXXX.plist)
+sed \
+    -e "s|INSTALL_PATH_PLACEHOLDER|$BINARY_IN_BUNDLE|g" \
+    -e "s|FTP_HOST_PLACEHOLDER|$FTP_HOST|g" \
+    -e "s|FTP_USERNAME_PLACEHOLDER|$FTP_USER|g" \
+    -e "s|FTP_PASSWORD_PLACEHOLDER|$FTP_PASS|g" \
+    -e "s|FTP_PATH_PLACEHOLDER|$FTP_PATH|g" \
+    -e "s|FTP_INTERVAL_PLACEHOLDER|$FTP_INTERVAL|g" \
+    << 'PLIST_EOF' > "$TMP_PLIST"
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.icyscreen.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>INSTALL_PATH_PLACEHOLDER</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>ICS_FTP_HOST</key>
+        <string>FTP_HOST_PLACEHOLDER</string>
+        <key>ICS_FTP_USERNAME</key>
+        <string>FTP_USERNAME_PLACEHOLDER</string>
+        <key>ICS_FTP_PASSWORD</key>
+        <string>FTP_PASSWORD_PLACEHOLDER</string>
+        <key>ICS_FTP_PATH</key>
+        <string>FTP_PATH_PLACEHOLDER</string>
+        <key>ICS_INTERVAL</key>
+        <string>FTP_INTERVAL_PLACEHOLDER</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/icyscreen.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/icyscreen.log</string>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>
+PLIST_EOF
+sudo mkdir -p "$REAL_HOME/Library/LaunchAgents"
+sudo cp "$TMP_PLIST" "$AGENT_PLIST"
+sudo chown "$REAL_USER" "$AGENT_PLIST"
+sudo chmod 644 "$AGENT_PLIST"
+rm -f "$TMP_PLIST"
 
 launchctl asuser "$REAL_UID" launchctl unload "$AGENT_PLIST" 2>/dev/null || true
 launchctl asuser "$REAL_UID" launchctl load -w "$AGENT_PLIST"
