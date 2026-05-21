@@ -13,7 +13,6 @@ REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME=$(eval echo "~$REAL_USER")
 REAL_UID=$(id -u "$REAL_USER")
 AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/${AGENT_LABEL}.plist"
-TCC_DB="$REAL_HOME/Library/Application Support/com.apple.TCC/TCC.db"
 
 echo "========================================"
 echo "  IcyScreen Installer"
@@ -86,27 +85,6 @@ sudo chflags -R uchg "$APP_BUNDLE"
 echo "App bundle installed."
 echo ""
 
-# ── Screen Recording permission via TCC database ───────────────────────────────
-echo "Granting Screen Recording permission..."
-TCC_GRANTED=false
-
-if [ -f "$TCC_DB" ]; then
-    if sudo sqlite3 "$TCC_DB" \
-        "INSERT OR REPLACE INTO access \
-         (service,client,client_type,auth_value,auth_reason,auth_version,\
-          csreq,policy_id,indirect_object_identifier_type,\
-          indirect_object_identifier,indirect_object_code_identity,flags,last_modified) \
-         VALUES ('kTCCServiceScreenCapture','com.icyscreen.agent',0,2,4,1,\
-                 NULL,NULL,0,'UNUSED',NULL,0,\
-                 CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null; then
-        sudo pkill -9 tccd 2>/dev/null || true
-        sleep 1
-        echo "Screen Recording permission granted automatically."
-        TCC_GRANTED=true
-    else
-        echo "TCC database write blocked (normal on macOS 14+)."
-    fi
-fi
 
 # ── LaunchAgent ────────────────────────────────────────────────────────────────
 # Plist template is embedded here to avoid file-permission issues on Tahoe.
@@ -176,12 +154,9 @@ echo "  Installation Complete"
 echo "========================================"
 echo ""
 
-if [ "$TCC_GRANTED" = false ]; then
-    echo "ACTION REQUIRED — Screen Recording:"
-    echo "  1. Open System Settings → Privacy & Security → Screen Recording"
-    echo "  2. Click (+) and add /Applications/IcyScreen.app"
-    echo "  3. Toggle IcyScreen ON"
-    echo ""
-fi
-
-echo "IcyScreen is running and auto-starts on every login."
+echo "ACTION REQUIRED — Screen Recording:"
+echo "  1. Open System Settings → Privacy & Security → Screen Recording"
+echo "  2. Click (+) and add /Applications/IcyScreen.app"
+echo "  3. Toggle IcyScreen ON"
+echo ""
+echo "IcyScreen will start automatically on every login."
