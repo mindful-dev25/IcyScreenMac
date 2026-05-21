@@ -9,6 +9,8 @@ struct FTPUploader {
         if !remotePath.hasSuffix("/") { remotePath += "/" }
         let ftpURL = "ftp://\(config.ftpHost)\(remotePath)\(filename)"
 
+        log("Uploading to \(ftpURL)")
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
         process.arguments = [
@@ -20,9 +22,8 @@ struct FTPUploader {
             "-T", fileURL.path,
             ftpURL
         ]
-
-        let errPipe = Pipe()
-        process.standardError = errPipe
+        // stderr inherits from parent → goes to /tmp/icyscreen.log via LaunchAgent plist.
+        // Do NOT redirect to a Pipe — curl's verbose output can deadlock waitUntilExit().
 
         do {
             try process.run()
@@ -34,11 +35,9 @@ struct FTPUploader {
         }
 
         if process.terminationStatus == 0 {
-            log("Uploaded \(filename)")
+            log("Upload succeeded: \(filename)")
         } else {
-            let msg = String(data: errPipe.fileHandleForReading.readDataToEndOfFile(),
-                            encoding: .utf8) ?? ""
-            log("Upload failed (\(process.terminationStatus)): \(msg.trimmingCharacters(in: .whitespacesAndNewlines))")
+            log("Upload failed (curl exit \(process.terminationStatus)) — see verbose output above")
         }
 
         cleanup(fileURL)

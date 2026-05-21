@@ -77,8 +77,10 @@ sudo chmod 755 "$BINARY_IN_BUNDLE"
 # Remove quarantine so macOS doesn't block execution
 sudo xattr -r -d com.apple.quarantine "$APP_BUNDLE" 2>/dev/null || true
 
-# NOTE: intentionally NOT codesigning — ad-hoc signing changes the code hash
-# on every install which silently invalidates Screen Recording permission in TCC.
+# Ad-hoc sign so TCC can track a stable identity across restarts.
+# For the same binary this produces the same signature — permission persists.
+# Only revokes if the binary is rebuilt and reinstalled.
+sudo codesign -s - --force "$APP_BUNDLE" 2>/dev/null || true
 
 # Lock the bundle — prevents deletion
 sudo chflags -R uchg "$APP_BUNDLE"

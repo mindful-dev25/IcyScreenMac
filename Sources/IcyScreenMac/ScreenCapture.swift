@@ -13,11 +13,6 @@ struct ScreenCapture {
             if let error = error {
                 let code = (error as NSError).code
                 log("Screen capture error (\(code)): \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    NSWorkspace.shared.open(
-                        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
-                    )
-                }
                 semaphore.signal()
                 return
             }
