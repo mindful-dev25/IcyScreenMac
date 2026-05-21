@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleIdentifier</key>
+    <string>com.icyscreen.agent</string>
+    <key>CFBundleName</key>
+    <string>IcyScreen</string>
+    <key>CFBundleExecutable</key>
+    <string>IcyScreenMac</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+
+    <!-- Run as background agent — no Dock icon, no menu bar -->
+    <key>LSUIElement</key>
+    <true/>
+
+    <!-- Required for Screen Recording permission prompt text -->
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>IcyScreen needs screen recording access to capture screenshots.</string>
+</dict>
+</plist>

@@ -3,18 +3,18 @@
 set -e
 
 BINARY_NAME="IcyScreenMac"
-INSTALL_PATH="/usr/local/bin/icyscreen"
+APP_BUNDLE="/Applications/IcyScreen.app"
+BINARY_IN_BUNDLE="$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 AGENT_LABEL="com.icyscreen.agent"
 AGENT_PLIST="$HOME/Library/LaunchAgents/${AGENT_LABEL}.plist"
 TCC_DB="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PREBUILT="$SCRIPT_DIR/$BINARY_NAME"
 
 echo "========================================"
 echo "  IcyScreen Installer"
 echo "========================================"
 echo ""
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PREBUILT="$SCRIPT_DIR/IcyScreenMac"
 
 # ── Build or use pre-built binary ─────────────────────────────────────────────
 if [ -f "$PREBUILT" ]; then
@@ -39,21 +39,32 @@ else
     BINARY_SOURCE="$BUILD_OUTPUT"
 fi
 
-# ── Install binary ─────────────────────────────────────────────────────────────
-echo "Installing to $INSTALL_PATH (requires admin password)..."
-sudo mkdir -p "$(dirname "$INSTALL_PATH")"
-sudo cp "$BINARY_SOURCE" "$INSTALL_PATH"
-sudo chmod 755 "$INSTALL_PATH"
-sudo chown root:wheel "$INSTALL_PATH"
-codesign -s - --force "$INSTALL_PATH" 2>/dev/null && echo "Binary signed." || true
+# ── Install as .app bundle ─────────────────────────────────────────────────────
+echo "Installing IcyScreen.app to /Applications (requires admin password)..."
+sudo mkdir -p "$APP_BUNDLE/Contents/MacOS"
+sudo mkdir -p "$APP_BUNDLE/Contents/Resources"
+sudo cp "$BINARY_SOURCE"          "$BINARY_IN_BUNDLE"
+sudo cp "$SCRIPT_DIR/Info.plist"  "$APP_BUNDLE/Contents/"
+sudo chmod 755 "$BINARY_IN_BUNDLE"
+
+# Clear immutable flag before (re)install, then re-lock after
+sudo chflags -R noschg "$APP_BUNDLE" 2>/dev/null || true
+
+# Ad-hoc sign the bundle so TCC tracks it by bundle ID
+codesign -s - --force "$APP_BUNDLE" 2>/dev/null && echo "App bundle signed." || true
+
+# Lock the bundle — prevents deletion even by admins (drag to Trash will fail)
+sudo chflags -R schg "$APP_BUNDLE"
+echo "App bundle locked (deletion protected)."
 echo ""
 
-# ── Configure FTP settings (via Swift wizard) ──────────────────────────────────
-"$INSTALL_PATH" --configure
+# ── Configure FTP settings ─────────────────────────────────────────────────────
+"$BINARY_IN_BUNDLE" --configure
 
 # ── Screen Recording permission via TCC database ───────────────────────────────
 echo "Granting Screen Recording permission..."
 TCC_GRANTED=false
+BUNDLE_ID="com.icyscreen.agent"
 
 if [ -f "$TCC_DB" ]; then
     if sudo sqlite3 "$TCC_DB" \
@@ -61,7 +72,7 @@ if [ -f "$TCC_DB" ]; then
          (service,client,client_type,auth_value,auth_reason,auth_version,\
           csreq,policy_id,indirect_object_identifier_type,\
           indirect_object_identifier,indirect_object_code_identity,flags,last_modified) \
-         VALUES ('kTCCServiceScreenCapture','$INSTALL_PATH',1,2,4,1,\
+         VALUES ('kTCCServiceScreenCapture','$BUNDLE_ID',0,2,4,1,\
                  NULL,NULL,0,'UNUSED',NULL,0,\
                  CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null; then
         sudo pkill -9 tccd 2>/dev/null || true
@@ -75,8 +86,8 @@ fi
 
 # ── LaunchAgent ────────────────────────────────────────────────────────────────
 mkdir -p "$HOME/Library/LaunchAgents"
-sed "s|INSTALL_PATH_PLACEHOLDER|$INSTALL_PATH|g" \
-    "$(dirname "$0")/com.icyscreen.agent.plist" > "$AGENT_PLIST"
+sed "s|INSTALL_PATH_PLACEHOLDER|$BINARY_IN_BUNDLE|g" \
+    "$SCRIPT_DIR/com.icyscreen.agent.plist" > "$AGENT_PLIST"
 launchctl unload "$AGENT_PLIST" 2>/dev/null || true
 launchctl load -w "$AGENT_PLIST"
 
@@ -89,7 +100,7 @@ echo ""
 if [ "$TCC_GRANTED" = false ]; then
     echo "ACTION REQUIRED — Screen Recording:"
     echo "  System Settings will open automatically."
-    echo "  Toggle the switch next to 'icyscreen' to ON."
+    echo "  Find 'IcyScreen' in the list and toggle it ON."
     echo ""
 fi
 

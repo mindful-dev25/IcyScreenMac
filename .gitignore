@@ -1,6 +1,9 @@
 # Swift / SPM
 .build/
 dist/
+
+# Built app bundle
+*.app
 *.o
 *.d
 *.swp

@@ -33,7 +33,7 @@ rm -rf "dist/$OUTPUT_NAME"
 mkdir -p "dist/$OUTPUT_NAME"
 
 cp ".build/IcyScreenMac-universal" "dist/$OUTPUT_NAME/IcyScreenMac"
-cp install.sh uninstall.sh com.icyscreen.agent.plist "dist/$OUTPUT_NAME/"
+cp install.sh uninstall.sh com.icyscreen.agent.plist Info.plist "dist/$OUTPUT_NAME/"
 chmod +x "dist/$OUTPUT_NAME/install.sh" "dist/$OUTPUT_NAME/uninstall.sh"
 
 cd dist/
