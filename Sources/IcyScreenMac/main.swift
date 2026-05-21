@@ -1,5 +1,10 @@
 import Foundation
 
+if CommandLine.arguments.contains("--configure") {
+    Configurator.run()
+    exit(0)
+}
+
 log("Starting (pid \(ProcessInfo.processInfo.processIdentifier))")
 
 PermissionManager.ensureScreenRecording()
