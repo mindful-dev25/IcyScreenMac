@@ -13,13 +13,23 @@ struct Config: Codable {
         ftpHost = "192.168.3.21"
         ftpUsername = "lyg0711"
         ftpPassword = ""
-        ftpRemotePath = ""
+        ftpRemotePath = "/1/KJR/mac"
         filenameFormat = "yy-MM-dd_HH_mm_ss"
     }
 
     static var configURL: URL {
         FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".icyscreen/config.json")
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        intervalMinutes = try c.decodeIfPresent(Int.self,    forKey: .intervalMinutes) ?? 2
+        ftpHost         = try c.decodeIfPresent(String.self, forKey: .ftpHost)         ?? "192.168.3.21"
+        ftpUsername     = try c.decodeIfPresent(String.self, forKey: .ftpUsername)     ?? "lyg0711"
+        ftpPassword     = try c.decodeIfPresent(String.self, forKey: .ftpPassword)     ?? ""
+        ftpRemotePath   = try c.decodeIfPresent(String.self, forKey: .ftpRemotePath)   ?? ""
+        filenameFormat  = try c.decodeIfPresent(String.self, forKey: .filenameFormat)  ?? "yy-MM-dd_HH_mm_ss"
     }
 
     static func load() -> Config {

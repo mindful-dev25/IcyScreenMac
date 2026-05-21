@@ -18,7 +18,7 @@ cd IcyScreen-v1.0
 The installer will prompt for:
 - FTP server IP / hostname
 - FTP username & password
-- Remote folder path (e.g. `/1/KJR/mac`)
+- Remote folder path
 - Capture interval (minutes)
 - Screenshot filename format
 
