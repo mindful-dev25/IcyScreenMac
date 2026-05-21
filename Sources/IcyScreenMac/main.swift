@@ -13,16 +13,20 @@ guard !config.ftpHost.isEmpty else {
 
 log("Interval: \(config.intervalMinutes) min | FTP: \(config.ftpHost)\(config.ftpRemotePath)")
 
-let capture = ScreenCapture()
+let capture  = ScreenCapture()
 let uploader = FTPUploader(config: config)
 
+// Serial queue — captures never overlap even if one runs long
+let captureQueue = DispatchQueue(label: "com.icyscreen.capture", qos: .background)
+
 func captureAndUpload() {
-    log("Capturing screenshot")
-    guard let fileURL = capture.capture() else { return }
-    uploader.upload(fileURL: fileURL)
+    captureQueue.async {
+        log("Capturing screenshot")
+        guard let fileURL = capture.capture() else { return }
+        uploader.upload(fileURL: fileURL)
+    }
 }
 
-// First capture immediately on start
 captureAndUpload()
 
 let intervalSeconds = TimeInterval(max(1, config.intervalMinutes) * 60)
