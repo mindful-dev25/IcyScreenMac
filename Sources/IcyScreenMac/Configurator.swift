@@ -15,7 +15,7 @@ Press Enter to keep the current value.
         config.ftpHost       = ask("FTP host",            current: config.ftpHost)
         config.ftpUsername   = ask("FTP username",        current: config.ftpUsername)
         config.ftpPassword   = askSecret("FTP password",  current: config.ftpPassword)
-        config.ftpRemotePath = ask("Remote path",         current: config.ftpRemotePath)
+        config.ftpRemotePath = ask("Remote path (e.g. /screenshots)", current: config.ftpRemotePath)
         config.intervalMinutes = askInt("Capture interval (minutes)",
                                         current: config.intervalMinutes)
 
