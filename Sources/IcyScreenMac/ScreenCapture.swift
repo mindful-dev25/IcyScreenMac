@@ -6,6 +6,12 @@ struct ScreenCapture {
     let filenameFormat: String
 
     func capture() -> URL? {
+        guard PermissionManager.hasPermission else {
+            log("Skipping capture — Screen Recording permission not granted. Grant it in System Settings → Privacy & Security → Screen Recording → IcyScreen")
+            PermissionManager.requestIfNeeded()
+            return nil
+        }
+
         let semaphore = DispatchSemaphore(value: 0)
         var capturedURL: URL?
 

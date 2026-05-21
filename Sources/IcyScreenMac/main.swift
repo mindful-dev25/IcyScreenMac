@@ -7,7 +7,7 @@ if CommandLine.arguments.contains("--configure") {
 
 log("Starting (pid \(ProcessInfo.processInfo.processIdentifier))")
 
-PermissionManager.ensureScreenRecording()
+PermissionManager.requestIfNeeded()
 
 let config = Config.load()
 
