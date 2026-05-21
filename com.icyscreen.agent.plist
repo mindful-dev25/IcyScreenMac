@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.icyscreen.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>INSTALL_PATH_PLACEHOLDER</string>
+    </array>
+
+    <!-- Start automatically when the user logs in -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- launchd restarts the process if it exits or is killed -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/tmp/icyscreen.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/icyscreen.log</string>
+
+    <!-- Throttle restarts: wait 10s before restarting after a crash -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+</dict>
+</plist>

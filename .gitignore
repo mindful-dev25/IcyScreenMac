@@ -1,0 +1,15 @@
+# Swift / SPM
+.build/
+*.o
+*.d
+*.swp
+*.xcuserstate
+*.xcworkspace
+xcuserdata/
+
+# Config (contains FTP credentials — never commit)
+.icyscreen/
+config.json
+
+# macOS
+.DS_Store
