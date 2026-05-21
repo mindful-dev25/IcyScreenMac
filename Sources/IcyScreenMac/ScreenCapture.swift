@@ -6,25 +6,31 @@ struct ScreenCapture {
     let filenameFormat: String
 
     func capture() -> URL? {
-        guard PermissionManager.hasPermission else {
-            log("Skipping capture — Screen Recording permission not granted. Grant it in System Settings → Privacy & Security → Screen Recording → IcyScreen")
-            PermissionManager.requestIfNeeded()
-            return nil
-        }
-
         let semaphore = DispatchSemaphore(value: 0)
         var capturedURL: URL?
 
         SCShareableContent.getExcludingDesktopWindows(false, onScreenWindowsOnly: false) { content, error in
+            if let error = error {
+                let code = (error as NSError).code
+                log("Screen capture error (\(code)): \(error.localizedDescription)")
+                // Open System Settings to Screen Recording when permission is denied
+                DispatchQueue.main.async {
+                    NSWorkspace.shared.open(
+                        URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+                    )
+                }
+                semaphore.signal()
+                return
+            }
+
             guard let display = content?.displays.first else {
-                log("No display found: \(error?.localizedDescription ?? "unknown")")
+                log("No display found")
                 semaphore.signal()
                 return
             }
 
             let filter = SCContentFilter(display: display, excludingWindows: [])
             let config = SCStreamConfiguration()
-            // Use display's native point dimensions — SCK scales to pixels internally
             config.width  = display.width
             config.height = display.height
 
@@ -38,7 +44,6 @@ struct ScreenCapture {
             }
         }
 
-        // 30-second hard timeout so we never hang the capture queue
         if semaphore.wait(timeout: .now() + 30) == .timedOut {
             log("Screenshot capture timed out")
         }

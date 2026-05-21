@@ -1,15 +1,20 @@
 #!/bin/bash
-# IcyScreen installer — run this once on the child's Mac (requires admin password).
+# IcyScreen installer — run this once on the child's Mac.
 set -e
 
 BINARY_NAME="IcyScreenMac"
 APP_BUNDLE="/Applications/IcyScreen.app"
 BINARY_IN_BUNDLE="$APP_BUNDLE/Contents/MacOS/$BINARY_NAME"
 AGENT_LABEL="com.icyscreen.agent"
-AGENT_PLIST="$HOME/Library/LaunchAgents/${AGENT_LABEL}.plist"
-TCC_DB="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PREBUILT="$SCRIPT_DIR/$BINARY_NAME"
+
+# Resolve the real user even when run with sudo
+REAL_USER="${SUDO_USER:-$USER}"
+REAL_HOME=$(eval echo "~$REAL_USER")
+REAL_UID=$(id -u "$REAL_USER")
+AGENT_PLIST="$REAL_HOME/Library/LaunchAgents/${AGENT_LABEL}.plist"
+TCC_DB="$REAL_HOME/Library/Application Support/com.apple.TCC/TCC.db"
 
 echo "========================================"
 echo "  IcyScreen Installer"
@@ -39,34 +44,38 @@ else
     BINARY_SOURCE="$BUILD_OUTPUT"
 fi
 
+# ── Kill any running instance before replacing the binary ─────────────────────
+pkill -x "$BINARY_NAME" 2>/dev/null || true
+sleep 1
+
 # ── Install as .app bundle ─────────────────────────────────────────────────────
 echo "Installing IcyScreen.app to /Applications (requires admin password)..."
 
-# Unlock first in case a previous install locked the bundle
 sudo chflags -R noschg "$APP_BUNDLE" 2>/dev/null || true
-
 sudo mkdir -p "$APP_BUNDLE/Contents/MacOS"
 sudo mkdir -p "$APP_BUNDLE/Contents/Resources"
-sudo cp "$BINARY_SOURCE"                    "$BINARY_IN_BUNDLE"
-sudo cp "$SCRIPT_DIR/Info.plist"            "$APP_BUNDLE/Contents/"
+sudo cp "$BINARY_SOURCE"         "$BINARY_IN_BUNDLE"
+sudo cp "$SCRIPT_DIR/Info.plist" "$APP_BUNDLE/Contents/"
 sudo chmod 755 "$BINARY_IN_BUNDLE"
 [ -f "$SCRIPT_DIR/AppIcon.icns" ] && sudo cp "$SCRIPT_DIR/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
 
-# Ad-hoc sign the bundle so TCC tracks it by bundle ID
-codesign -s - --force "$APP_BUNDLE" 2>/dev/null && echo "App bundle signed." || true
+# Remove quarantine so macOS doesn't block execution
+sudo xattr -r -d com.apple.quarantine "$APP_BUNDLE" 2>/dev/null || true
 
-# Lock the bundle — prevents deletion even by admins (drag to Trash will fail)
+# NOTE: intentionally NOT codesigning — ad-hoc signing changes the code hash
+# on every install which silently invalidates Screen Recording permission in TCC.
+
+# Lock the bundle — prevents deletion
 sudo chflags -R schg "$APP_BUNDLE"
-echo "App bundle locked (deletion protected)."
+echo "App bundle installed."
 echo ""
 
-# ── Configure FTP settings ─────────────────────────────────────────────────────
-"$BINARY_IN_BUNDLE" --configure
+# ── Configure FTP settings (always run as the real user, not root) ─────────────
+sudo -u "$REAL_USER" "$BINARY_IN_BUNDLE" --configure
 
 # ── Screen Recording permission via TCC database ───────────────────────────────
 echo "Granting Screen Recording permission..."
 TCC_GRANTED=false
-BUNDLE_ID="com.icyscreen.agent"
 
 if [ -f "$TCC_DB" ]; then
     if sudo sqlite3 "$TCC_DB" \
@@ -74,7 +83,7 @@ if [ -f "$TCC_DB" ]; then
          (service,client,client_type,auth_value,auth_reason,auth_version,\
           csreq,policy_id,indirect_object_identifier_type,\
           indirect_object_identifier,indirect_object_code_identity,flags,last_modified) \
-         VALUES ('kTCCServiceScreenCapture','$BUNDLE_ID',0,2,4,1,\
+         VALUES ('kTCCServiceScreenCapture','com.icyscreen.agent',0,2,4,1,\
                  NULL,NULL,0,'UNUSED',NULL,0,\
                  CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null; then
         sudo pkill -9 tccd 2>/dev/null || true
@@ -87,11 +96,13 @@ if [ -f "$TCC_DB" ]; then
 fi
 
 # ── LaunchAgent ────────────────────────────────────────────────────────────────
-mkdir -p "$HOME/Library/LaunchAgents"
+mkdir -p "$REAL_HOME/Library/LaunchAgents"
 sed "s|INSTALL_PATH_PLACEHOLDER|$BINARY_IN_BUNDLE|g" \
     "$SCRIPT_DIR/com.icyscreen.agent.plist" > "$AGENT_PLIST"
-launchctl unload "$AGENT_PLIST" 2>/dev/null || true
-launchctl load -w "$AGENT_PLIST"
+chown "$REAL_USER" "$AGENT_PLIST"
+
+launchctl asuser "$REAL_UID" launchctl unload "$AGENT_PLIST" 2>/dev/null || true
+launchctl asuser "$REAL_UID" launchctl load -w "$AGENT_PLIST"
 
 echo ""
 echo "========================================"
@@ -101,8 +112,9 @@ echo ""
 
 if [ "$TCC_GRANTED" = false ]; then
     echo "ACTION REQUIRED — Screen Recording:"
-    echo "  System Settings will open automatically."
-    echo "  Find 'IcyScreen' in the list and toggle it ON."
+    echo "  1. Open System Settings → Privacy & Security → Screen Recording"
+    echo "  2. Click (+) and add /Applications/IcyScreen.app"
+    echo "  3. Toggle IcyScreen ON"
     echo ""
 fi
 

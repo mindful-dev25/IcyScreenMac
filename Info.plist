@@ -27,5 +27,9 @@
     <!-- Required for Screen Recording permission prompt text -->
     <key>NSScreenCaptureUsageDescription</key>
     <string>IcyScreen needs screen recording access to capture screenshots.</string>
+
+    <!-- Required for Local Network access (FTP to LAN servers) -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>IcyScreen needs local network access to upload screenshots to the FTP server.</string>
 </dict>
 </plist>

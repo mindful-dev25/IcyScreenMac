@@ -1,15 +1,10 @@
 import Foundation
-import CoreGraphics
+import AppKit
 
 struct PermissionManager {
-    static var hasPermission: Bool {
-        CGPreflightScreenCaptureAccess()
-    }
-
-    // Call once at startup — opens System Settings if not yet granted, then returns immediately.
-    static func requestIfNeeded() {
-        guard !hasPermission else { return }
-        log("Screen Recording permission not granted — opening System Settings")
-        CGRequestScreenCaptureAccess()
+    static func openScreenRecordingSettings() {
+        NSWorkspace.shared.open(
+            URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!
+        )
     }
 }
