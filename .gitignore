@@ -1,5 +1,6 @@
 # Swift / SPM
 .build/
+dist/
 *.o
 *.d
 *.swp
