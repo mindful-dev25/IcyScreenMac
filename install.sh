@@ -41,14 +41,15 @@ fi
 
 # ── Install as .app bundle ─────────────────────────────────────────────────────
 echo "Installing IcyScreen.app to /Applications (requires admin password)..."
+
+# Unlock first in case a previous install locked the bundle
+sudo chflags -R noschg "$APP_BUNDLE" 2>/dev/null || true
+
 sudo mkdir -p "$APP_BUNDLE/Contents/MacOS"
 sudo mkdir -p "$APP_BUNDLE/Contents/Resources"
 sudo cp "$BINARY_SOURCE"          "$BINARY_IN_BUNDLE"
 sudo cp "$SCRIPT_DIR/Info.plist"  "$APP_BUNDLE/Contents/"
 sudo chmod 755 "$BINARY_IN_BUNDLE"
-
-# Clear immutable flag before (re)install, then re-lock after
-sudo chflags -R noschg "$APP_BUNDLE" 2>/dev/null || true
 
 # Ad-hoc sign the bundle so TCC tracks it by bundle ID
 codesign -s - --force "$APP_BUNDLE" 2>/dev/null && echo "App bundle signed." || true
