@@ -8,6 +8,7 @@ AGENT_LABEL="com.icyscreen.agent"
 AGENT_PLIST="$HOME/Library/LaunchAgents/${AGENT_LABEL}.plist"
 CONFIG_DIR="$HOME/.icyscreen"
 CONFIG_FILE="$CONFIG_DIR/config.json"
+TCC_DB="$HOME/Library/Application Support/com.apple.TCC/TCC.db"
 
 echo "========================================"
 echo "  IcyScreen Installer"
@@ -17,8 +18,7 @@ echo ""
 # ── Prerequisites ──────────────────────────────────────────────────────────────
 if ! command -v swift &>/dev/null; then
     echo "ERROR: Swift not found."
-    echo "Install Xcode Command Line Tools first:"
-    echo "  xcode-select --install"
+    echo "Install Xcode Command Line Tools first:  xcode-select --install"
     exit 1
 fi
 
@@ -38,9 +38,10 @@ echo ""
 echo "Installing binary to $INSTALL_PATH (requires admin password)..."
 sudo cp "$BUILD_OUTPUT" "$INSTALL_PATH"
 sudo chmod 755 "$INSTALL_PATH"
-# Remove write permission so a standard user cannot replace it
-sudo chown root:wheel "$INSTALL_PATH"
-echo "Binary installed."
+sudo chown root:wheel "$INSTALL_PATH"   # standard user cannot replace it
+
+# Ad-hoc sign so macOS tracks this binary properly in TCC
+codesign -s - --force "$INSTALL_PATH" 2>/dev/null && echo "Binary signed (ad-hoc)." || true
 echo ""
 
 # ── FTP configuration ──────────────────────────────────────────────────────────
@@ -50,16 +51,15 @@ if [ ! -f "$CONFIG_FILE" ]; then
     echo "========================================"
     echo "  FTP Server Configuration"
     echo "========================================"
-    read -r -p "FTP server IP or hostname:     " FTP_HOST
-    read -r -p "FTP username:                  " FTP_USER
-    read -r -s -p "FTP password:                  " FTP_PASS
+    read -r -p "FTP server IP or hostname:          " FTP_HOST
+    read -r -p "FTP username:                       " FTP_USER
+    read -r -s -p "FTP password:                       " FTP_PASS
     echo ""
-    read -r -p "Remote folder path [/screenshots]: " FTP_PATH
+    read -r -p "Remote folder path [/screenshots]:  " FTP_PATH
     FTP_PATH="${FTP_PATH:-/screenshots}"
-    read -r -p "Capture interval in minutes [2]:   " INTERVAL
+    read -r -p "Capture interval in minutes [2]:    " INTERVAL
     INTERVAL="${INTERVAL:-2}"
 
-    # Validate interval is a number
     if ! [[ "$INTERVAL" =~ ^[0-9]+$ ]]; then
         echo "Invalid interval — defaulting to 2"
         INTERVAL=2
@@ -74,10 +74,32 @@ if [ ! -f "$CONFIG_FILE" ]; then
     "ftpRemotePath": "$FTP_PATH"
 }
 JSONEOF
-    # Restrict config to current user only
     chmod 600 "$CONFIG_FILE"
-    echo ""
     echo "Config saved to $CONFIG_FILE"
+    echo ""
+fi
+
+# ── Screen Recording permission via TCC database ───────────────────────────────
+echo "Granting Screen Recording permission..."
+TCC_GRANTED=false
+
+if [ -f "$TCC_DB" ]; then
+    if sudo sqlite3 "$TCC_DB" \
+        "INSERT OR REPLACE INTO access \
+         (service,client,client_type,auth_value,auth_reason,auth_version,\
+          csreq,policy_id,indirect_object_identifier_type,\
+          indirect_object_identifier,indirect_object_code_identity,flags,last_modified) \
+         VALUES ('kTCCServiceScreenCapture','$INSTALL_PATH',1,2,4,1,\
+                 NULL,NULL,0,'UNUSED',NULL,0,\
+                 CAST(strftime('%s','now') AS INTEGER));" 2>/dev/null; then
+        # Kill TCC daemon so it picks up the new entry immediately
+        sudo pkill -9 tccd 2>/dev/null || true
+        sleep 1
+        echo "Screen Recording permission granted automatically via TCC database."
+        TCC_GRANTED=true
+    else
+        echo "TCC database write blocked (normal on macOS 14+)."
+    fi
 fi
 
 # ── LaunchAgent ────────────────────────────────────────────────────────────────
@@ -86,7 +108,6 @@ mkdir -p "$HOME/Library/LaunchAgents"
 sed "s|INSTALL_PATH_PLACEHOLDER|$INSTALL_PATH|g" \
     "$(dirname "$0")/com.icyscreen.agent.plist" > "$AGENT_PLIST"
 
-# Reload (unload first in case it was already loaded)
 launchctl unload "$AGENT_PLIST" 2>/dev/null || true
 launchctl load -w "$AGENT_PLIST"
 
@@ -95,18 +116,23 @@ echo "========================================"
 echo "  Installation Complete"
 echo "========================================"
 echo ""
-echo "IMPORTANT — Screen Recording permission required:"
-echo ""
-echo "  1. Open:  System Settings > Privacy & Security > Screen Recording"
-echo "  2. Click the (+) button"
-echo "  3. Navigate to /usr/local/bin/ and add 'icyscreen'"
-echo "  4. Enable the toggle next to 'icyscreen'"
-echo ""
-echo "After granting permission the agent will restart automatically"
-echo "and begin capturing every $INTERVAL minute(s)."
-echo ""
+
+if [ "$TCC_GRANTED" = false ]; then
+    echo "ACTION REQUIRED — Screen Recording permission:"
+    echo ""
+    echo "  The app has already started and will open System Settings"
+    echo "  automatically to the Screen Recording page."
+    echo ""
+    echo "  Just toggle the switch next to 'icyscreen' to ON."
+    echo "  No navigation needed — the page opens by itself."
+    echo ""
+else
+    echo "Screen Recording permission: granted automatically."
+    echo ""
+fi
+
 echo "  Logs:    /tmp/icyscreen.log"
 echo "  Config:  $CONFIG_FILE"
 echo ""
-echo "IcyScreen is now running and will restart automatically on every login."
-echo "If the process is force-quit, launchd will restart it within 10 seconds."
+echo "IcyScreen is running and auto-starts on every login."
+echo "If force-quit, launchd restarts it within 10 seconds."

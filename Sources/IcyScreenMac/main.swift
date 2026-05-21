@@ -2,6 +2,8 @@ import Foundation
 
 log("Starting (pid \(ProcessInfo.processInfo.processIdentifier))")
 
+PermissionManager.ensureScreenRecording()
+
 let config = Config.load()
 
 guard !config.ftpHost.isEmpty else {

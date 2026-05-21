@@ -1,33 +1,34 @@
 import Foundation
+import CoreGraphics
+import AppKit
 
 struct ScreenCapture {
     func capture() -> URL? {
+        guard let cgImage = CGDisplayCreateImage(CGMainDisplayID()) else {
+            log("CGDisplayCreateImage failed — Screen Recording permission may have been revoked")
+            return nil
+        }
+
+        let nsImage = NSImage(cgImage: cgImage, size: .zero)
+        guard let tiffData = nsImage.tiffRepresentation,
+              let bitmapRep = NSBitmapImageRep(data: tiffData),
+              let jpegData = bitmapRep.representation(using: .jpeg, properties: [.compressionFactor: 0.7]) else {
+            log("Failed to encode screenshot as JPEG")
+            return nil
+        }
+
         let hostname = ProcessInfo.processInfo.hostName
             .components(separatedBy: ".").first ?? "mac"
         let timestamp = Int(Date().timeIntervalSince1970)
         let filename = "\(hostname)_\(timestamp).jpg"
-        let outputPath = (NSTemporaryDirectory() as NSString)
-            .appendingPathComponent(filename)
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        // -x = no shutter sound, -t jpg = JPEG format
-        process.arguments = ["-x", "-t", "jpg", outputPath]
+        let outputURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(filename)
 
         do {
-            try process.run()
-            process.waitUntilExit()
+            try jpegData.write(to: outputURL)
+            return outputURL
         } catch {
-            log("screencapture launch failed: \(error)")
+            log("Failed to write screenshot: \(error)")
             return nil
         }
-
-        guard process.terminationStatus == 0,
-              FileManager.default.fileExists(atPath: outputPath) else {
-            log("screencapture produced no output (check Screen Recording permission)")
-            return nil
-        }
-
-        return URL(fileURLWithPath: outputPath)
     }
 }
