@@ -28,13 +28,16 @@ echo "Universal binary created."
 echo ""
 
 # ── Package ───────────────────────────────────────────────────────────────────
+# ── Generate icon ─────────────────────────────────────────────────────────────
+bash create_icon.sh
+
 echo "Packaging..."
 rm -rf "dist/$OUTPUT_NAME"
 mkdir -p "dist/$OUTPUT_NAME"
 
 cp ".build/IcyScreenMac-universal" "dist/$OUTPUT_NAME/IcyScreenMac"
-cp install.sh uninstall.sh com.icyscreen.agent.plist Info.plist "dist/$OUTPUT_NAME/"
-chmod +x "dist/$OUTPUT_NAME/install.sh" "dist/$OUTPUT_NAME/uninstall.sh"
+cp install.sh com.icyscreen.agent.plist Info.plist AppIcon.icns "dist/$OUTPUT_NAME/"
+chmod +x "dist/$OUTPUT_NAME/install.sh"
 
 cd dist/
 zip -r "${OUTPUT_NAME}.zip" "${OUTPUT_NAME}/"

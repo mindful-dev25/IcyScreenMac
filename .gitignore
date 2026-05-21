@@ -4,6 +4,11 @@ dist/
 
 # Built app bundle
 *.app
+
+# Generated icon (rebuilt by make_installer.sh)
+AppIcon.icns
+AppIcon.iconset
+icon_1024.png
 *.o
 *.d
 *.swp
