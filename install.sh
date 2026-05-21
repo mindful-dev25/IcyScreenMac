@@ -66,7 +66,7 @@ sleep 1
 # ── Install as .app bundle ─────────────────────────────────────────────────────
 echo "Installing IcyScreen.app to /Applications (requires admin password)..."
 
-sudo chflags -R nouchg "$APP_BUNDLE" 2>/dev/null || true
+sudo chflags -R nouchg,noschg "$APP_BUNDLE" 2>/dev/null || true
 sudo mkdir -p "$APP_BUNDLE/Contents/MacOS"
 sudo mkdir -p "$APP_BUNDLE/Contents/Resources"
 sudo cp "$BINARY_SOURCE"         "$BINARY_IN_BUNDLE"
