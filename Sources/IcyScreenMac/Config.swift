@@ -12,7 +12,7 @@ struct Config: Codable {
         ftpHost = "192.168.3.21"
         ftpUsername = "lyg0711"
         ftpPassword = ""
-        ftpRemotePath = "/1/KKK/mac"
+        ftpRemotePath = "/1/KJR/mac"
     }
 
     static var configURL: URL {

@@ -104,7 +104,4 @@ if [ "$TCC_GRANTED" = false ]; then
     echo ""
 fi
 
-echo "  Logs:    /tmp/icyscreen.log"
-echo "  Config:  $HOME/.icyscreen/config.json"
-echo ""
 echo "IcyScreen is running and auto-starts on every login."
